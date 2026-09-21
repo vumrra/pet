@@ -1,26 +1,27 @@
-// Independent frame clock and complete 360 ms physical bounce cycles.
+// 입력마다 프레임을 한 칸 넘기고 한 번 눌렸다가 복원합니다.
 export class Motion {
   private start = -Infinity;
-  private until = -Infinity;
+  private step = 0;
   trigger(now: number) {
-    if (now >= this.until) this.start = now;
-    this.until = this.start + Math.ceil((now - this.start + 540) / 360) * 360;
+    this.start = now;
+    this.step++;
   }
   stop() {
-    this.start = this.until = -Infinity;
+    this.start = -Infinity;
+    this.step = 0;
   }
   sample(now: number, fps: number, count: number, reduced: boolean) {
-    if (now >= this.until)
-      return { frame: 0, y: 0, scaleX: 1, scaleY: 1, active: false };
-    const elapsed = Math.max(0, now - this.start),
-      phase = (elapsed % 360) / 360;
-    const contact = Math.max(0, 1 - phase * 10);
+    const progress = Math.min(
+      1,
+      Math.max(0, ((now - this.start) * fps) / 1000),
+    );
+    const pressure = reduced ? 0 : (1 - progress) ** 3;
     return {
-      frame: Math.floor((elapsed * fps) / 1000) % Math.max(1, count),
-      y: reduced ? 0 : -12 * 4 * phase * (1 - phase),
-      scaleX: reduced ? 1 : 1 + contact * 0.035,
-      scaleY: reduced ? 1 : 1 - contact * 0.035,
-      active: true,
+      frame: this.step % Math.max(1, count),
+      y: 0,
+      scaleX: 1 + pressure * 0.06,
+      scaleY: 1 - pressure * 0.12,
+      active: progress < 1,
     };
   }
 }

@@ -43,28 +43,28 @@ test("strict settings and max five validated IDs", () => {
   assert.deepEqual(reorder(["a", "b", "c"], 0, 2), ["b", "c", "a"]);
   assert.throws(() => reorder(["a"], 0, 1));
 });
-test("frame clock is independent of bounded bounce, rapid input extends activity, idle resets", () => {
+test("each input immediately advances one frame and presses once without bouncing", () => {
   const m = new Motion();
+  assert.equal(m.sample(0, 8, 2, false).frame, 0);
   m.trigger(0);
-  const a = m.sample(100, 4, 2, false);
-  assert.equal(a.frame, 0);
-  assert.ok(a.y < 0 && a.y >= -12);
-  assert.equal(m.sample(300, 4, 2, false).frame, 1);
-  m.trigger(350);
-  assert.equal(m.sample(500, 4, 2, false).frame, 0);
-  assert.ok(m.sample(650, 4, 1, false).active);
-  assert.equal(m.sample(650, 4, 1, false).frame, 0);
-  assert.equal(m.sample(650, 4, 2, true).y, 0);
-  assert.deepEqual(m.sample(1400, 4, 2, false), {
-    frame: 0,
+  const pressed = m.sample(0, 8, 2, false);
+  assert.equal(pressed.frame, 1);
+  assert.equal(pressed.y, 0);
+  assert.ok(pressed.scaleY < 1);
+  assert.ok(m.sample(60, 8, 2, false).scaleY > pressed.scaleY);
+  assert.deepEqual(m.sample(125, 8, 2, false), {
+    frame: 1,
     y: 0,
     scaleX: 1,
     scaleY: 1,
     active: false,
   });
-  m.trigger(1500);
+  assert.equal(m.sample(1000, 8, 2, false).frame, 1);
+  m.trigger(1100);
+  assert.equal(m.sample(1100, 8, 2, false).frame, 0);
+  assert.equal(m.sample(1100, 8, 2, true).scaleY, 1);
   m.stop();
-  assert.equal(m.sample(1510, 4, 2, false).active, false);
+  assert.equal(m.sample(1110, 8, 2, false).active, false);
 });
 test("bounds fit even small or negative-coordinate displays", () => {
   assert.deepEqual(
@@ -121,7 +121,7 @@ test("five distinct frames are accepted; sixth is rejected; no clamping at trust
   for (const size of [79, 281, Infinity, "160"])
     assert.throws(() => validatePatch({ size }));
 });
-test("held/rapid activity preserves the frame epoch; one-frame bounces stay padded at any FPS", () => {
+test("rapid input advances once per trigger; one-frame presses stay grounded", () => {
   const m = new Motion();
   m.trigger(100);
   for (let now = 110; now < 3000; now += 10) {
@@ -129,14 +129,15 @@ test("held/rapid activity preserves the frame epoch; one-frame bounces stay padd
     const s = m.sample(now, 30, 1, false);
     assert.ok(s.active);
     assert.equal(s.frame, 0);
-    assert.ok(s.y >= -12 && s.y <= 0);
-    assert.ok(s.scaleX <= 1.035);
+    assert.equal(s.y, 0);
+    assert.ok(s.scaleX <= 1.06);
+    assert.ok(s.scaleY >= 0.88 && s.scaleY < 1);
   }
   assert.equal(m.sample(4500, 30, 1, false).active, false);
   const f = new Motion();
   f.trigger(0);
   f.trigger(249);
-  assert.equal(f.sample(250, 4, 5, false).frame, 1);
+  assert.equal(f.sample(250, 4, 5, false).frame, 2);
 });
 test("atomic write failure retains last committed settings and queue recovers", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pitter-unit-"));

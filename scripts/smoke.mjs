@@ -113,15 +113,20 @@ try {
     path: join(evidence, "pet-idle.png"),
     omitBackground: true,
   });
+  const idleFrame = await pet.locator("#sprite").getAttribute("src");
   await app.evaluate(({ BrowserWindow }) =>
     BrowserWindow.getAllWindows()[0].webContents.send(
       "pitter-event",
       "activity",
     ),
   );
-  await pet.waitForFunction(() =>
-    document.querySelector("#sprite").style.transform.includes("translateY(-"),
-  );
+  await pet.waitForFunction(() => {
+    const matrix = new DOMMatrixReadOnly(
+      document.querySelector("#sprite").style.transform,
+    );
+    return matrix.m42 === 0 && matrix.m22 < 1;
+  });
+  assert.notEqual(await pet.locator("#sprite").getAttribute("src"), idleFrame);
   await pet.screenshot({
     path: join(evidence, "pet-active.png"),
     omitBackground: true,
@@ -133,9 +138,12 @@ try {
     fullPage: true,
   });
   await page.locator("#simulate").click();
-  await page.waitForFunction(() =>
-    document.querySelector("#sprite").style.transform.includes("translateY(-"),
-  );
+  await page.waitForFunction(() => {
+    const matrix = new DOMMatrixReadOnly(
+      document.querySelector("#sprite").style.transform,
+    );
+    return matrix.m42 === 0 && matrix.m22 < 1;
+  });
   await page.screenshot({
     path: join(evidence, "settings-preview-active.png"),
     fullPage: true,
