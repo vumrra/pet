@@ -1,0 +1,79 @@
+{
+  "name": "pitter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "키보드 옆의 작은 펫",
+  "author": "p.e.t",
+  "license": "MIT",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:native": "node scripts/native-smoke.mjs",
+    "verify:artifacts": "node scripts/verify-artifacts.mjs",
+    "format": "prettier --write \"src/*.{ts,html,css}\" \"scripts/*.mjs\" \"tests/*.ts\" package.json tsconfig.json",
+    "format:check": "prettier --check \"src/*.{ts,html,css}\" \"scripts/*.mjs\" \"tests/*.ts\" package.json tsconfig.json",
+    "dist:mac": "npm run build && electron-builder --mac --arm64 --x64 --publish never",
+    "dist:win": "npm run build && electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^41.0.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.56.0",
+    "prettier": "^3.9.8",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  },
+  "build": {
+    "appId": "local.pitter.desktop",
+    "productName": "p.e.t",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**/*",
+      "dist/permission-check"
+    ],
+    "npmRebuild": false,
+    "artifactName": "p.e.t-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "icon": "assets/app-icon.icns",
+      "category": "public.app-category.entertainment",
+      "identity": "-",
+      "target": [
+        "zip",
+        "dmg"
+      ],
+      "extendInfo": {
+        "NSInputMonitoringUsageDescription": "키 내용을 저장하지 않고 펫의 움직임에만 반영합니다."
+      }
+    },
+    "win": {
+      "icon": "assets/app-icon.ico",
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "type": "module"
+}
